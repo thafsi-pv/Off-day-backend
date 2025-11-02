@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  status    UserStatus @default(PENDING)
+  leaves    Leave[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shift {
+  id       String @id @default(cuid())
+  name     String
+  slots    Int
+  leaves   Leave[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Config {
+  id           String   @id @default(cuid())
+  disabledDays Int[]    @default([0, 6]) // PostgreSQL native array
+  weekRange    WeekRange @default(TWO_WEEKS)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Leave {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  shiftId   String
+  shift     Shift       @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  status    LeaveStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  
+  @@index([userId])
+  @@index([date])
+  @@index([shiftId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum WeekRange {
+  ONE_WEEK
+  TWO_WEEKS
+  ONE_MONTH
+}
+

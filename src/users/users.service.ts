@@ -1,6 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserStatus } from '../shared/types';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -37,5 +38,40 @@ export class UsersService {
     } catch (error) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
+  }
+
+  async resetPassword(id: string, newPassword?: string) {
+    try {
+      // Generate a random password if none provided
+      const password = newPassword || this.generateRandomPassword();
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
+      await (this.prisma as any).user.update({
+        where: { id },
+        data: { password: hashedPassword },
+      });
+
+      return {
+        success: true,
+        newPassword: newPassword ? undefined : password, // Only return password if auto-generated
+        message: newPassword 
+          ? 'Password has been reset successfully.' 
+          : 'Password has been reset. Please share the new password with the user.',
+      };
+    } catch (error) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+  }
+
+  private generateRandomPassword(): string {
+    // Generate a random 8-character password
+    const length = 8;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
   }
 }

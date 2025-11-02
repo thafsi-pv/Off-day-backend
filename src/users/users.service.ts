@@ -55,8 +55,8 @@ export class UsersService {
       return {
         success: true,
         newPassword: newPassword ? undefined : password, // Only return password if auto-generated
-        message: newPassword 
-          ? 'Password has been reset successfully.' 
+        message: newPassword
+          ? 'Password has been reset successfully.'
           : 'Password has been reset. Please share the new password with the user.',
       };
     } catch (error) {
@@ -67,7 +67,8 @@ export class UsersService {
   private generateRandomPassword(): string {
     // Generate a random 8-character password
     const length = 8;
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const charset =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let password = '';
     for (let i = 0; i < length; i++) {
       password += charset.charAt(Math.floor(Math.random() * charset.length));

@@ -1,6 +1,9 @@
 import { Controller, Get, Patch, Param, Body, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import {
+  UpdateUserDto,
+  UpdateUserStatusDto,
+} from './dto/update-user-status.dto';
 import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 
 @Controller('users')
@@ -26,5 +29,13 @@ export class UsersController {
     @Body() resetPasswordDto: ResetUserPasswordDto,
   ) {
     return this.usersService.resetPassword(id, resetPasswordDto.newPassword);
+  }
+
+  @Patch(':id')
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.usersService.updateUser(id, updateUserDto);
   }
 }

@@ -114,3 +114,6 @@ psql -U postgres -d offday
 - Ensure the user has proper permissions on the database
 - Check user privileges: `\du` in psql
 
+
+
+

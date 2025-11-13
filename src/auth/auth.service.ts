@@ -13,10 +13,10 @@ import * as bcrypt from 'bcryptjs';
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
-  async login(email: string, pass: string) {
+  async login(mobile: string, pass: string) {
     // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
     const user = await (this.prisma as any).user.findUnique({
-      where: { email },
+      where: { mobile },
     });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -42,11 +42,11 @@ export class AuthService {
   async register(registerUserDto: RegisterUserDto) {
     // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
     const existingUser = await (this.prisma as any).user.findUnique({
-      where: { email: registerUserDto.email },
+      where: { mobile: registerUserDto.mobile },
     });
     if (existingUser) {
       throw new HttpException(
-        'User with this email already exists',
+        'User with this mobile already exists',
         HttpStatus.CONFLICT,
       );
     }
@@ -58,6 +58,7 @@ export class AuthService {
       data: {
         name: registerUserDto.name,
         email: registerUserDto.email,
+        mobile: registerUserDto.mobile,
         password: hashedPassword,
         role: 'USER',
         status: 'PENDING',

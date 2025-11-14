@@ -106,4 +106,13 @@ export class UsersService {
     }
     return password;
   }
+
+  async deleteUserById(id: string) {
+    try {
+      await (this.prisma as any).user.delete({ where: { id } });
+      return { success: true, message: 'User deleted successfully' };
+    } catch (error) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+  }
 }

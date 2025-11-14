@@ -23,6 +23,45 @@ export class LeavesService {
 
     const date = new Date(leaveData.date + 'T00:00:00Z');
 
+    // Check if user already has a leave on this date
+    const existingLeave = await (this.prisma as any).leave.findFirst({
+      where: {
+        userId: leaveData.userId,
+        date: date,
+        status: {
+          in: ['PENDING', 'APPROVED'],
+        },
+      },
+    });
+
+    if (existingLeave) {
+      throw new HttpException(
+        'You already have a leave request for this date',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Check available slots for the date and shift
+    const approvedLeavesCount = await (this.prisma as any).leave.count({
+      where: {
+        date: date,
+        shiftId: leaveData.shiftId,
+        status: {
+          in: ['PENDING', 'APPROVED'],
+        },
+      },
+    });
+
+    const availableSlots = shift.slots - approvedLeavesCount;
+
+    if (availableSlots <= 0) {
+      throw new HttpException(
+        'No available slots for this date and shift',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Create the leave request
     // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.
     const newLeave = await (this.prisma as any).leave.create({
       data: {
@@ -40,6 +79,38 @@ export class LeavesService {
       shiftName: shift.name,
     };
   }
+  // async create(leaveData: CreateLeaveDto): Promise<Leave> {
+  //   // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
+  //   const user = await (this.prisma as any).user.findUnique({
+  //     where: { id: leaveData.userId },
+  //   });
+  //   // FIX: Property 'shift' does not exist on type 'PrismaService'. Cast to any to fix type issue.
+  //   const shift = await (this.prisma as any).shift.findUnique({
+  //     where: { id: leaveData.shiftId },
+  //   });
+  //   if (!user || !shift) {
+  //     throw new HttpException('Invalid user or shift', HttpStatus.BAD_REQUEST);
+  //   }
+
+  //   const date = new Date(leaveData.date + 'T00:00:00Z');
+
+  //   // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.
+  //   const newLeave = await (this.prisma as any).leave.create({
+  //     data: {
+  //       date,
+  //       userId: leaveData.userId,
+  //       shiftId: leaveData.shiftId,
+  //       status: 'PENDING',
+  //     },
+  //   });
+
+  //   return {
+  //     ...newLeave,
+  //     date: newLeave.date.toISOString().split('T')[0],
+  //     userName: user.name,
+  //     shiftName: shift.name,
+  //   };
+  // }
 
   async findAll(): Promise<Leave[]> {
     // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.
@@ -234,7 +305,7 @@ export class LeavesService {
       ]),
     );
 
-    let current = new Date(start);
+    const current = new Date(start);
     while (current <= end) {
       const dateString = current.toISOString().split('T')[0];
       const filledSlots = Number(leavesCountMap.get(dateString)) || 0;

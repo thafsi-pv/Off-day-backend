@@ -15,7 +15,7 @@ import { UpdateMultipleLeavesDto } from './dto/update-multiple-leaves.dto';
 
 @Controller('leaves')
 export class LeavesController {
-  constructor(private readonly leavesService: LeavesService) {}
+  constructor(private readonly leavesService: LeavesService) { }
 
   @Post()
   async create(@Body() createLeaveDto: CreateLeaveDto) {
@@ -47,7 +47,11 @@ export class LeavesController {
     @Param('id') id: string,
     @Body() updateLeaveStatusDto: UpdateLeaveStatusDto,
   ) {
-    return this.leavesService.updateStatus(id, updateLeaveStatusDto.status);
+    return this.leavesService.updateStatus(
+      id,
+      updateLeaveStatusDto.status,
+      updateLeaveStatusDto.reason,
+    );
   }
 
   @Delete(':id')

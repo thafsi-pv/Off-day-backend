@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsOptional } from 'class-validator';
 
 export class CreateLeaveDto {
   @IsString()
@@ -12,4 +12,12 @@ export class CreateLeaveDto {
   @IsString()
   @IsNotEmpty()
   shiftId: string;
+
+  @IsString()
+  @IsOptional()
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+
+  @IsString()
+  @IsOptional()
+  creatorId?: string;
 }

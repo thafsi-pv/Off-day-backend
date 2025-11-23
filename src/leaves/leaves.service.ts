@@ -6,7 +6,7 @@ import { CreateLeaveDto } from './dto/create-leave.dto';
 
 @Injectable()
 export class LeavesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(leaveData: CreateLeaveDto): Promise<Leave> {
     // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
@@ -68,7 +68,8 @@ export class LeavesService {
         date,
         userId: leaveData.userId,
         shiftId: leaveData.shiftId,
-        status: 'PENDING',
+        status: (leaveData.status as any) || 'PENDING',
+        creatorId: leaveData.creatorId,
       },
     });
 
@@ -76,7 +77,9 @@ export class LeavesService {
       ...newLeave,
       date: newLeave.date.toISOString().split('T')[0],
       userName: user.name,
+      userMobile: user.mobile,
       shiftName: shift.name,
+      creatorId: newLeave.creatorId,
     };
   }
   // async create(leaveData: CreateLeaveDto): Promise<Leave> {
@@ -142,18 +145,20 @@ export class LeavesService {
       createdAt: l.createdAt.toISOString(),
       userName: l.user.name,
       shiftName: l.shift.name,
+      creatorId: l.creatorId,
     }));
   }
 
   async updateStatus(
     leaveId: string,
     status: LeaveStatus.APPROVED | LeaveStatus.REJECTED,
+    reason?: string,
   ): Promise<Leave> {
     try {
       // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.
       const updatedLeave = await (this.prisma as any).leave.update({
         where: { id: leaveId },
-        data: { status },
+        data: { status, reason },
         include: { user: true, shift: true },
       });
       return {
@@ -161,6 +166,7 @@ export class LeavesService {
         date: updatedLeave.date.toISOString().split('T')[0],
         createdAt: updatedLeave.createdAt.toISOString(),
         userName: updatedLeave.user.name,
+        userMobile: updatedLeave.user.mobile,
         shiftName: updatedLeave.shift.name,
       };
     } catch (e) {
@@ -230,7 +236,9 @@ export class LeavesService {
         date: leave.date.toISOString().split('T')[0],
         createdAt: leave.createdAt.toISOString(),
         userName: leave.user.name,
+        userMobile: leave.user.mobile,
         shiftName: leave.shift.name,
+        creatorId: leave.creatorId,
       };
     } catch (e) {
       if (e instanceof HttpException) {

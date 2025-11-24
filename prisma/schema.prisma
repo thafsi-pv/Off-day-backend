@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,49 +8,47 @@ datasource db {
 }
 
 model User {
-  id        String      @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String
-  email     String?      @unique
-  mobile    String?     @unique
+  email     String?    @unique
   password  String
-  role      Role        @default(USER)
-  status    UserStatus  @default(PENDING)
+  role      Role       @default(USER)
+  status    UserStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  mobile    String?    @unique
   leaves    Leave[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
 }
 
-
 model Shift {
-  id       String @id @default(cuid())
-  name     String
-  slots    Int
-  leaves   Leave[]
+  id        String   @id @default(cuid())
+  name      String
+  slots     Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  leaves    Leave[]
 }
 
 model Config {
-  id           String   @id @default(cuid())
-  disabledDays Int[]    @default([0, 6]) // PostgreSQL native array
+  id           String    @id @default(cuid())
   weekRange    WeekRange @default(TWO_WEEKS)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model Leave {
   id        String      @id @default(cuid())
   userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   date      DateTime
   shiftId   String
-  shift     Shift       @relation(fields: [shiftId], references: [id], onDelete: Restrict)
   status    LeaveStatus @default(PENDING)
-  reason    String?
-  creatorId String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
-  
+  reason    String?
+  creatorId String?
+  shift     Shift       @relation(fields: [shiftId], references: [id])
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([date])
   @@index([shiftId])
@@ -81,4 +76,3 @@ enum WeekRange {
   TWO_WEEKS
   ONE_MONTH
 }
-

@@ -25,7 +25,7 @@ const toDbWeekRange = (apiValue: Config['weekRange']): DbWeekRange => {
 
 @Injectable()
 export class ConfigService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getConfig(): Promise<Config> {
     const [configData, shifts] = await Promise.all([

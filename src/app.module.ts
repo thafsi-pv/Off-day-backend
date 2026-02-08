@@ -4,6 +4,8 @@ import { LeavesModule } from './leaves/leaves.module';
 import { ConfigModule } from './config/config.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
+import { UserShiftsModule } from './user-shifts/user-shifts.module';
+
 
 @Module({
   imports: [
@@ -12,8 +14,10 @@ import { UsersModule } from './users/users.module';
     ConfigModule,
     PrismaModule,
     UsersModule,
+    UserShiftsModule,
+
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }

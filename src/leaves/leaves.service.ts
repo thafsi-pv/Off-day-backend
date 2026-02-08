@@ -4,9 +4,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Leave, LeaveSlotInfo, LeaveStatus } from '../shared/types';
 import { CreateLeaveDto } from './dto/create-leave.dto';
 
+
+
 @Injectable()
 export class LeavesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+  ) { }
 
   async create(leaveData: CreateLeaveDto): Promise<Leave> {
     // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
@@ -161,7 +165,7 @@ export class LeavesService {
         data: { status, reason },
         include: { user: true, shift: true },
       });
-      return {
+      const formattedLeave = {
         ...updatedLeave,
         date: updatedLeave.date.toISOString().split('T')[0],
         createdAt: updatedLeave.createdAt.toISOString(),
@@ -169,6 +173,10 @@ export class LeavesService {
         userMobile: updatedLeave.user.mobile,
         shiftName: updatedLeave.shift.name,
       };
+
+
+
+      return formattedLeave;
     } catch (e) {
       throw new HttpException('Leave not found', HttpStatus.NOT_FOUND);
     }
@@ -200,13 +208,17 @@ export class LeavesService {
       include: { user: true, shift: true },
     });
 
-    return updatedLeaves.map((l) => ({
+    const formattedLeaves = updatedLeaves.map((l) => ({
       ...l,
       date: l.date.toISOString().split('T')[0],
       createdAt: l.createdAt.toISOString(),
       userName: l.user.name,
       shiftName: l.shift.name,
     }));
+
+
+
+    return formattedLeaves;
   }
 
   async remove(leaveId: string): Promise<Leave> {

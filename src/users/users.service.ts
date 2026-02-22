@@ -12,7 +12,7 @@ import { UpdateUserDto } from './dto/update-user-status.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findAll() {
     // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
@@ -24,6 +24,7 @@ export class UsersService {
         mobile: true,
         role: true,
         status: true,
+        allowedTabs: true,
       },
     });
   }
@@ -40,6 +41,7 @@ export class UsersService {
           email: true,
           role: true,
           status: true,
+          allowedTabs: true,
         },
       });
       return user;

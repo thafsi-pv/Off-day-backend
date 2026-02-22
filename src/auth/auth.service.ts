@@ -11,9 +11,10 @@ import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async login(mobile: string, pass: string) {
+    console.log('credentials', mobile, pass);
     // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
     const user = await (this.prisma as any).user.findUnique({
       where: { mobile },

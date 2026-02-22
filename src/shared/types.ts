@@ -4,6 +4,7 @@
 export enum Role {
   USER = 'USER',
   ADMIN = 'ADMIN',
+  SHIFT_MANAGER = 'SHIFT_MANAGER',
 }
 
 export enum LeaveStatus {
@@ -27,6 +28,7 @@ export interface User {
   role: Role;
   password?: string; // Made optional for return DTOs
   status: UserStatus;
+  allowedTabs: string[];
 }
 
 export interface Shift {

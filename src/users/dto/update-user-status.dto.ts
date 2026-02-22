@@ -1,11 +1,12 @@
 import {
-  IsEmail,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsArray,
+  IsEmail,
 } from 'class-validator';
-import { UserStatus } from '../../shared/types';
+import { UserStatus, Role } from '../../shared/types';
 
 export class UpdateUserStatusDto {
   @IsEnum(UserStatus)
@@ -29,4 +30,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allowedTabs?: string[];
 }

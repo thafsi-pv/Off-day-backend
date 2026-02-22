@@ -17,6 +17,7 @@ model User {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   mobile    String?    @unique
+  allowedTabs String[]   @default([])
   leaves    Leave[]
   userShifts UserShift[]
 }

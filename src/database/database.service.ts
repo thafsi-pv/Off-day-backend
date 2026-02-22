@@ -35,6 +35,7 @@ export class DatabaseService implements OnModuleInit {
         role: Role.USER,
         password: 'password',
         status: UserStatus.ACTIVE,
+        allowedTabs: [],
       },
       {
         id: '2',
@@ -43,6 +44,7 @@ export class DatabaseService implements OnModuleInit {
         role: Role.ADMIN,
         password: 'password',
         status: UserStatus.ACTIVE,
+        allowedTabs: [],
       },
       {
         id: '3',
@@ -51,6 +53,7 @@ export class DatabaseService implements OnModuleInit {
         role: Role.USER,
         password: 'password',
         status: UserStatus.ACTIVE,
+        allowedTabs: [],
       },
     ];
 

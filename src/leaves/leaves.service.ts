@@ -1,10 +1,8 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-// FIX: Module '"@prisma/client"' has no exported member 'LeaveStatus'. Import LeaveStatus from shared types instead.
 import { Leave, LeaveSlotInfo, LeaveStatus } from '../shared/types';
 import { CreateLeaveDto } from './dto/create-leave.dto';
-
-
+import { startOfWeek, parseISO } from 'date-fns';
 
 @Injectable()
 export class LeavesService {
@@ -12,29 +10,90 @@ export class LeavesService {
     private prisma: PrismaService,
   ) { }
 
-  async create(leaveData: CreateLeaveDto): Promise<Leave> {
-    // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
-    const user = await (this.prisma as any).user.findUnique({
+  async create(leaveData: CreateLeaveDto, requestingUser?: any): Promise<Leave> {
+    // Load user from DB (or use the one passed from the guard)
+    const user = requestingUser ?? await (this.prisma as any).user.findUnique({
       where: { id: leaveData.userId },
     });
-    // FIX: Property 'shift' does not exist on type 'PrismaService'. Cast to any to fix type issue.
-    const shift = await (this.prisma as any).shift.findUnique({
-      where: { id: leaveData.shiftId },
-    });
-    if (!user || !shift) {
-      throw new HttpException('Invalid user or shift', HttpStatus.BAD_REQUEST);
+
+    if (!user) {
+      throw new HttpException('Invalid user', HttpStatus.BAD_REQUEST);
+    }
+
+    // === VALIDATION 1: User must be ACTIVE ===
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenException('Your account is not active. Please contact an administrator.');
     }
 
     const date = new Date(leaveData.date + 'T00:00:00Z');
 
-    // Check if user already has a leave on this date
+    // === VALIDATION 2: Date must not be a disabled day ===
+    const configData = await (this.prisma as any).config.findFirstOrThrow();
+    const disabledDays: number[] = configData.disabledDays || [];
+    const dayOfWeek = date.getUTCDay(); // 0=Sunday, 6=Saturday
+    if (disabledDays.includes(dayOfWeek)) {
+      throw new HttpException(
+        'Leave applications are not allowed on this day of the week',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // === VALIDATION 3: Date must be within allowed booking window ===
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    if (date < today) {
+      throw new HttpException('Cannot apply for leave on a past date', HttpStatus.BAD_REQUEST);
+    }
+    const weekRangeMap: Record<string, number> = {
+      ONE_WEEK: 7,
+      TWO_WEEKS: 14,
+      ONE_MONTH: 31,
+    };
+    const maxDays = weekRangeMap[configData.weekRange] ?? 7;
+    const maxDate = new Date(today);
+    maxDate.setUTCDate(maxDate.getUTCDate() + maxDays);
+    if (date > maxDate) {
+      throw new HttpException(
+        `Leave can only be applied within the next ${maxDays} days`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // === VALIDATION 4: User must have an assigned shift for the week of the leave date ===
+    const weekStart = startOfWeek(parseISO(leaveData.date), { weekStartsOn: 1 });
+    const userShift = await (this.prisma as any).userShift.findUnique({
+      where: {
+        userId_startDate: {
+          userId: leaveData.userId,
+          startDate: weekStart,
+        },
+      },
+      include: { shift: true },
+    });
+
+    if (!userShift) {
+      throw new HttpException(
+        'You do not have an assigned shift for this week. Please contact your manager.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // === VALIDATION 5: Requested shiftId must match user's assigned shift ===
+    if (userShift.shiftId !== leaveData.shiftId) {
+      throw new HttpException(
+        `Your assigned shift for this week is "${userShift.shift.name}". Please apply for leave under the correct shift.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const shift = userShift.shift;
+
+    // === Check: user must not already have a leave on this date ===
     const existingLeave = await (this.prisma as any).leave.findFirst({
       where: {
         userId: leaveData.userId,
         date: date,
-        status: {
-          in: ['PENDING', 'APPROVED'],
-        },
+        status: { in: ['PENDING', 'APPROVED'] },
       },
     });
 
@@ -45,19 +104,16 @@ export class LeavesService {
       );
     }
 
-    // Check available slots for the date and shift
+    // === Check available slots for the date and shift ===
     const approvedLeavesCount = await (this.prisma as any).leave.count({
       where: {
         date: date,
         shiftId: leaveData.shiftId,
-        status: {
-          in: ['PENDING', 'APPROVED'],
-        },
+        status: { in: ['PENDING', 'APPROVED'] },
       },
     });
 
     const availableSlots = shift.slots - approvedLeavesCount;
-
     if (availableSlots <= 0) {
       throw new HttpException(
         'No available slots for this date and shift',
@@ -65,8 +121,7 @@ export class LeavesService {
       );
     }
 
-    // Create the leave request
-    // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.
+    // === Create the leave request ===
     const newLeave = await (this.prisma as any).leave.create({
       data: {
         date,
@@ -86,38 +141,8 @@ export class LeavesService {
       creatorId: newLeave.creatorId,
     };
   }
-  // async create(leaveData: CreateLeaveDto): Promise<Leave> {
-  //   // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
-  //   const user = await (this.prisma as any).user.findUnique({
-  //     where: { id: leaveData.userId },
-  //   });
-  //   // FIX: Property 'shift' does not exist on type 'PrismaService'. Cast to any to fix type issue.
-  //   const shift = await (this.prisma as any).shift.findUnique({
-  //     where: { id: leaveData.shiftId },
-  //   });
-  //   if (!user || !shift) {
-  //     throw new HttpException('Invalid user or shift', HttpStatus.BAD_REQUEST);
-  //   }
 
-  //   const date = new Date(leaveData.date + 'T00:00:00Z');
 
-  //   // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.
-  //   const newLeave = await (this.prisma as any).leave.create({
-  //     data: {
-  //       date,
-  //       userId: leaveData.userId,
-  //       shiftId: leaveData.shiftId,
-  //       status: 'PENDING',
-  //     },
-  //   });
-
-  //   return {
-  //     ...newLeave,
-  //     date: newLeave.date.toISOString().split('T')[0],
-  //     userName: user.name,
-  //     shiftName: shift.name,
-  //   };
-  // }
 
   async findAll(): Promise<Leave[]> {
     // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.

@@ -5,17 +5,19 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) { }
 
-  async login(mobile: string, pass: string) {
-    console.log('credentials', mobile, pass);
-    // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
+  async login(mobile: string, pass: string, response: any) {
     const user = await (this.prisma as any).user.findUnique({
       where: { mobile },
     });
@@ -24,7 +26,6 @@ export class AuthService {
     }
 
     const isPasswordMatching = await bcrypt.compare(pass, user.password);
-
     if (!isPasswordMatching) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -35,13 +36,29 @@ export class AuthService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // Issue JWT
+    const payload = { sub: user.id, role: user.role };
+    const token = await this.jwtService.signAsync(payload);
+
+    // Set HTTP-only cookie
+    response.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Return user info + token (token also in cookie for convenience)
     const { password, ...result } = user;
-    return result;
+    return { ...result, access_token: token };
+  }
+
+  async logout(response: any) {
+    response.clearCookie('access_token');
+    return { message: 'Logged out successfully' };
   }
 
   async register(registerUserDto: RegisterUserDto) {
-    // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
     const existingUser = await (this.prisma as any).user.findUnique({
       where: { mobile: registerUserDto.mobile },
     });
@@ -54,7 +71,6 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
 
-    // FIX: Property 'user' does not exist on type 'PrismaService'. Cast to any to fix type issue.
     const newUser = await (this.prisma as any).user.create({
       data: {
         name: registerUserDto.name,

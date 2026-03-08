@@ -1,10 +1,11 @@
 import { Controller, Get, Put, Body } from '@nestjs/common';
 import { ConfigService } from './config.service';
 import { UpdateConfigDto } from './dto/update-config.dto';
+import { } from '../auth/decorators';
 
 @Controller('config')
 export class ConfigController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   @Get()
   async getConfig() {

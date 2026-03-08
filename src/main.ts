@@ -3,12 +3,23 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import * as dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 
 // Load environment variables
 dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Enable cookie parsing (needed for JWT cookie auth)
+  app.use(cookieParser());
+
+  // Debug middleware to log ALL cookies on every request
+  app.use((req, res, next) => {
+    console.log(`[HTTP] ${req.method} ${req.url}`);
+    console.log('Cookies in Req:', req.cookies);
+    next();
+  });
 
   // Get configuration values from environment
   const port = parseInt(process.env.PORT || '3000', 10);

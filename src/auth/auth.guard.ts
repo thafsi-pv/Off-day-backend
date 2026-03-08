@@ -69,10 +69,13 @@ export class AuthGuard implements CanActivate {
 
 
     private extractToken(request: any): string | null {
-        // Only use cookie for token extraction
-        if (request.cookies?.access_token) {
-            return request.cookies.access_token;
+        // 1. Try from cookie (Preferred)
+        if (request.cookies && request.cookies['access_token']) {
+            return request.cookies['access_token'];
         }
-        return null;
+
+        // 2. Try from Authorization Header (Fallback for cross-site mobile issues)
+        const [type, token] = request.headers.authorization?.split(' ') ?? [];
+        return type === 'Bearer' ? token : null;
     }
 }

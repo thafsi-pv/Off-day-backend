@@ -40,11 +40,11 @@ export class AuthService {
     const payload = { sub: user.id, role: user.role };
     const token = await this.jwtService.signAsync(payload);
 
-    // Set HTTP-only cookie
+    // Set HTTP-only cookie (Cross-site support for Vercel/Render)
     response.cookie('access_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // MUST be true for sameSite: 'none'
+      sameSite: 'none', // REQUIRED for cross-site deployment
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 

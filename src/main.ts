@@ -27,19 +27,18 @@ async function bootstrap() {
   const corsOrigin = process.env.CORS_ORIGIN;
 
   // Enable CORS with configured origins
-  if (corsOrigin) {
-    const origins = corsOrigin.split(',').map((origin) => origin.trim());
-    app.enableCors({
-      origin: origins,
-      credentials: true,
-    });
-  } else {
-    // Default: allow all origins in development
-    app.enableCors({
-      origin: true,
-      credentials: true,
-    });
-  }
+  const origins = corsOrigin ? corsOrigin.split(',').map((o) => o.trim()) : [];
+
+  const corsOptions = {
+    origin: origins.length > 0 ? origins : true,
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  };
+
+  app.enableCors(corsOptions);
+
+
 
   // Set a global prefix for all routes
   app.setGlobalPrefix(apiPrefix);

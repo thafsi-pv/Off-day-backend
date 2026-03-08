@@ -71,11 +71,21 @@ export class AuthGuard implements CanActivate {
     private extractToken(request: any): string | null {
         // 1. Try from cookie (Preferred)
         if (request.cookies && request.cookies['access_token']) {
+            console.log('[AuthGuard] Token found in cookie');
             return request.cookies['access_token'];
         }
 
         // 2. Try from Authorization Header (Fallback for cross-site mobile issues)
-        const [type, token] = request.headers.authorization?.split(' ') ?? [];
-        return type === 'Bearer' ? token : null;
+        const authHeader = request.headers.authorization || request.headers.Authorization;
+        if (authHeader) {
+            console.log('[AuthGuard] Token found in Authorization header');
+            const [type, token] = authHeader.split(' ');
+            return type === 'Bearer' ? token : null;
+        }
+
+        console.log('[AuthGuard] No token found in cookie or header');
+        console.log('[AuthGuard] Headers keys:', Object.keys(request.headers));
+        return null;
     }
 }
+

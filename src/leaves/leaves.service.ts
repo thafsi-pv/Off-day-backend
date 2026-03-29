@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Leave, LeaveSlotInfo, LeaveStatus } from '../shared/types';
 import { CreateLeaveDto } from './dto/create-leave.dto';
 import { startOfWeek, parseISO } from 'date-fns';
+import { BOOKING_CONSTANTS } from '../shared/constants';
 
 @Injectable()
 export class LeavesService {
@@ -39,22 +40,58 @@ export class LeavesService {
     }
 
     // === VALIDATION 3: Date must be within allowed booking window ===
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const now = new Date();
+    const istNow = new Date(now.getTime() + BOOKING_CONSTANTS.IST_OFFSET_MS);
+
+    const day = istNow.getUTCDay(); // 0=Sunday (in IST)
+    const hour = istNow.getUTCHours(); // (in IST)
+    const minute = istNow.getUTCMinutes(); // (in IST)
+
+    const [resetHour, resetMinute] = BOOKING_CONSTANTS.WEEKLY_RESET_TIME.split(':').map(Number);
+
+    let virtualToday = new Date(istNow);
+    if (day === BOOKING_CONSTANTS.WEEKLY_RESET_DAY && (hour < resetHour || (hour === resetHour && minute < resetMinute))) {
+      // It's Sunday before 15:30 IST, stay on Saturday's schedule
+      virtualToday.setUTCDate(virtualToday.getUTCDate() - 1);
+    }
+
+    // Normalize to start of day (using the virtual IST date)
+    const today = new Date(Date.UTC(virtualToday.getUTCFullYear(), virtualToday.getUTCMonth(), virtualToday.getUTCDate()));
+
     if (date < today) {
       throw new HttpException('Cannot apply for leave on a past date', HttpStatus.BAD_REQUEST);
     }
-    const weekRangeMap: Record<string, number> = {
-      ONE_WEEK: 7,
-      TWO_WEEKS: 14,
-      ONE_MONTH: 31,
-    };
-    const maxDays = weekRangeMap[configData.weekRange] ?? 7;
-    const maxDate = new Date(today);
-    maxDate.setUTCDate(maxDate.getUTCDate() + maxDays);
+
+    // === VALIDATION 3.1: Minimum 4 days notice (unless Admin) ===
+    const isAdmin = requestingUser?.role === 'ADMIN';
+    if (!isAdmin) {
+      const minDate = new Date(today.getTime());
+      minDate.setUTCDate(minDate.getUTCDate() + BOOKING_CONSTANTS.MIN_NOTICE_DAYS);
+      if (date < minDate) {
+         throw new HttpException(`Leave must be applied with at least ${BOOKING_CONSTANTS.MIN_NOTICE_DAYS} days notice.`, HttpStatus.BAD_REQUEST);
+      }
+    }
+
+    const currentDayOfWeek = today.getUTCDay();
+    const maxDate = new Date(today.getTime());
+
+    switch (configData.weekRange) {
+      case 'ONE_WEEK':
+        maxDate.setUTCDate(today.getUTCDate() + (6 - currentDayOfWeek));
+        break;
+      case 'TWO_WEEKS':
+        maxDate.setUTCDate(today.getUTCDate() + (6 - currentDayOfWeek) + 7);
+        break;
+      case 'ONE_MONTH':
+        maxDate.setUTCDate(today.getUTCDate() + 31);
+        break;
+      default:
+        maxDate.setUTCDate(today.getUTCDate() + 7);
+    }
+
     if (date > maxDate) {
       throw new HttpException(
-        `Leave can only be applied within the next ${maxDays} days`,
+        'Leave can only be applied within the allowed booking window based on the configuration.',
         HttpStatus.BAD_REQUEST,
       );
     }

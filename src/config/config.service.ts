@@ -49,6 +49,7 @@ export class ConfigService {
       openingDay: configData.openingDay,
       openingTime: configData.openingTime,
       minNoticeDays: configData.minNoticeDays,
+      maxLeavesPerWeek: configData.maxLeavesPerWeek,
       blockedDates: configData.blockedDates || [],
     };
   }
@@ -60,7 +61,7 @@ export class ConfigService {
 
     if (configValues.weekRange || configValues.disabledDays || 
         configValues.openingDay !== undefined || configValues.openingTime || 
-        configValues.minNoticeDays !== undefined || configValues.blockedDates) {
+        configValues.minNoticeDays !== undefined || configValues.maxLeavesPerWeek !== undefined || configValues.blockedDates) {
       // FIX: Property 'config' does not exist on type 'PrismaService'. Cast to any to fix type issue.
       const currentConfig = await (
         this.prisma as any
@@ -77,6 +78,7 @@ export class ConfigService {
             openingDay: configValues.openingDay,
             openingTime: configValues.openingTime,
             minNoticeDays: configValues.minNoticeDays,
+            maxLeavesPerWeek: configValues.maxLeavesPerWeek,
             blockedDates: configValues.blockedDates,
           },
         }),

@@ -140,6 +140,27 @@ export class LeavesService {
       );
     }
 
+    // === VALIDATION 6: User must not exceed the weekly leave limit ===
+    if (configData.maxLeavesPerWeek !== null) {
+      const weekEnd = new Date(weekStart.getTime());
+      weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+
+      const weeklyLeavesCount = await (this.prisma as any).leave.count({
+        where: {
+          userId: leaveData.userId,
+          date: { gte: weekStart, lte: weekEnd },
+          status: { in: ['PENDING', 'APPROVED'] },
+        },
+      });
+
+      if (weeklyLeavesCount >= configData.maxLeavesPerWeek) {
+        throw new HttpException(
+          `You have reached the limit of ${configData.maxLeavesPerWeek} leave(s) per week for the period starting ${weekStart.toISOString().split('T')[0]}.`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
     const shift = userShift.shift;
 
     // === Check: user must not already have a leave on this date ===

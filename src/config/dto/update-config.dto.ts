@@ -45,6 +45,10 @@ export class UpdateConfigDto {
   minNoticeDays?: number;
 
   @IsOptional()
+  @IsNumber()
+  maxLeavesPerWeek?: number;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   blockedDates?: string[];

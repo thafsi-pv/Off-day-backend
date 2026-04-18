@@ -58,6 +58,7 @@ export interface Config {
   openingDay: number;
   openingTime: string;
   minNoticeDays: number;
+  maxLeavesPerWeek?: number;
   blockedDates: string[];
 }
 

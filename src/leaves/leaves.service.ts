@@ -28,9 +28,19 @@ export class LeavesService {
 
     const date = new Date(leaveData.date + 'T00:00:00Z');
 
-    // === VALIDATION 2: Date must not be a disabled day ===
+    // === VALIDATION 2: Date must not be a disabled day or a blocked date ===
     const configData = await (this.prisma as any).config.findFirstOrThrow();
     const disabledDays: number[] = configData.disabledDays || [];
+    const blockedDates: string[] = configData.blockedDates || [];
+    const dateStr = date.toISOString().split('T')[0];
+
+    if (blockedDates.includes(dateStr)) {
+      throw new HttpException(
+        'This specific date is blocked for leave applications',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const dayOfWeek = date.getUTCDay(); // 0=Sunday, 6=Saturday
     if (disabledDays.includes(dayOfWeek)) {
       throw new HttpException(
@@ -47,11 +57,13 @@ export class LeavesService {
     const hour = istNow.getUTCHours(); // (in IST)
     const minute = istNow.getUTCMinutes(); // (in IST)
 
-    const [resetHour, resetMinute] = BOOKING_CONSTANTS.WEEKLY_RESET_TIME.split(':').map(Number);
+    const openingDay = configData.openingDay ?? BOOKING_CONSTANTS.WEEKLY_RESET_DAY;
+    const openingTime = configData.openingTime ?? BOOKING_CONSTANTS.WEEKLY_RESET_TIME;
+    const [resetHour, resetMinute] = openingTime.split(':').map(Number);
 
     let virtualToday = new Date(istNow);
-    if (day === BOOKING_CONSTANTS.WEEKLY_RESET_DAY && (hour < resetHour || (hour === resetHour && minute < resetMinute))) {
-      // It's Sunday before 15:30 IST, stay on Saturday's schedule
+    if (day === openingDay && (hour < resetHour || (hour === resetHour && minute < resetMinute))) {
+      // It's the opening day before the opening time, stay on previous day's schedule
       virtualToday.setUTCDate(virtualToday.getUTCDate() - 1);
     }
 
@@ -62,31 +74,36 @@ export class LeavesService {
       throw new HttpException('Cannot apply for leave on a past date', HttpStatus.BAD_REQUEST);
     }
 
-    // === VALIDATION 3.1: Minimum 4 days notice (unless Admin) ===
+    // === VALIDATION 3.1: Configurable notice period (unless Admin) ===
     const isAdmin = requestingUser?.role === 'ADMIN';
+    const minNoticeDays = configData.minNoticeDays ?? BOOKING_CONSTANTS.MIN_NOTICE_DAYS;
     if (!isAdmin) {
       const minDate = new Date(today.getTime());
-      minDate.setUTCDate(minDate.getUTCDate() + BOOKING_CONSTANTS.MIN_NOTICE_DAYS);
+      minDate.setUTCDate(minDate.getUTCDate() + minNoticeDays);
       if (date < minDate) {
-         throw new HttpException(`Leave must be applied with at least ${BOOKING_CONSTANTS.MIN_NOTICE_DAYS} days notice.`, HttpStatus.BAD_REQUEST);
+         throw new HttpException(`Leave must be applied with at least ${minNoticeDays} days notice.`, HttpStatus.BAD_REQUEST);
       }
     }
 
     const currentDayOfWeek = today.getUTCDay();
     const maxDate = new Date(today.getTime());
 
+    const daysToNextSunday = (7 - currentDayOfWeek) % 7;
+
     switch (configData.weekRange) {
-      case 'ONE_WEEK':
-        maxDate.setUTCDate(today.getUTCDate() + (6 - currentDayOfWeek));
+      case '1_WEEK':
+        maxDate.setUTCDate(today.getUTCDate() + daysToNextSunday);
         break;
-      case 'TWO_WEEKS':
-        maxDate.setUTCDate(today.getUTCDate() + (6 - currentDayOfWeek) + 7);
+      case '2_WEEKS':
+        maxDate.setUTCDate(today.getUTCDate() + daysToNextSunday + 7);
         break;
-      case 'ONE_MONTH':
-        maxDate.setUTCDate(today.getUTCDate() + 31);
+      case '1_MONTH':
+        // Calendar-wise end of month
+        const nextMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0));
+        maxDate.setTime(nextMonth.getTime());
         break;
       default:
-        maxDate.setUTCDate(today.getUTCDate() + 7);
+        maxDate.setUTCDate(today.getUTCDate() + daysToNextSunday);
     }
 
     if (date > maxDate) {

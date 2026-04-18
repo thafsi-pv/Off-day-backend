@@ -46,6 +46,10 @@ export class ConfigService {
       disabledDays: configData.disabledDays || [],
       weekRange: toApiWeekRange(configData.weekRange),
       shifts: mappedShifts,
+      openingDay: configData.openingDay,
+      openingTime: configData.openingTime,
+      minNoticeDays: configData.minNoticeDays,
+      blockedDates: configData.blockedDates || [],
     };
   }
 
@@ -54,7 +58,9 @@ export class ConfigService {
 
     const transactionOps: any[] = [];
 
-    if (configValues.weekRange || configValues.disabledDays) {
+    if (configValues.weekRange || configValues.disabledDays || 
+        configValues.openingDay !== undefined || configValues.openingTime || 
+        configValues.minNoticeDays !== undefined || configValues.blockedDates) {
       // FIX: Property 'config' does not exist on type 'PrismaService'. Cast to any to fix type issue.
       const currentConfig = await (
         this.prisma as any
@@ -68,6 +74,10 @@ export class ConfigService {
               ? toDbWeekRange(configValues.weekRange)
               : undefined,
             disabledDays: configValues.disabledDays,
+            openingDay: configValues.openingDay,
+            openingTime: configValues.openingTime,
+            minNoticeDays: configValues.minNoticeDays,
+            blockedDates: configValues.blockedDates,
           },
         }),
       );
@@ -83,16 +93,6 @@ export class ConfigService {
         (id) => !newShiftIds.includes(id),
       );
       if (shiftsToDelete.length > 0) {
-        // FIX: Property 'leave' does not exist on type 'PrismaService'. Cast to any to fix type issue.
-        const leavesOnDeletedShifts = await (this.prisma as any).leave.count({
-          where: { shiftId: { in: shiftsToDelete } },
-        });
-        if (leavesOnDeletedShifts > 0) {
-          throw new HttpException(
-            'Cannot delete shifts that have existing leave requests.',
-            HttpStatus.BAD_REQUEST,
-          );
-        }
         // FIX: Property 'shift' does not exist on type 'PrismaService'. Cast to any to fix type issue.
         transactionOps.push(
           (this.prisma as any).shift.deleteMany({

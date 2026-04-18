@@ -100,6 +100,10 @@ export class DatabaseService implements OnModuleInit {
       disabledDays: [0, 6], // Sunday, Saturday
       weekRange: '2_WEEKS',
       shifts: this.shifts,
+      openingDay: 0,
+      openingTime: '07:00',
+      minNoticeDays: 2,
+      blockedDates: [],
     };
   }
 }

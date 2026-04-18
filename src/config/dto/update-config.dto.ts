@@ -31,4 +31,21 @@ export class UpdateConfigDto {
   @ValidateNested({ each: true })
   @Type(() => ShiftDto)
   shifts?: ShiftDto[];
+
+  @IsOptional()
+  @IsNumber()
+  openingDay?: number;
+
+  @IsOptional()
+  @IsString()
+  openingTime?: string;
+
+  @IsOptional()
+  @IsNumber()
+  minNoticeDays?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  blockedDates?: string[];
 }

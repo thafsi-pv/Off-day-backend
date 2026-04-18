@@ -91,12 +91,15 @@ export class LeavesService {
     const daysToNextSunday = (7 - currentDayOfWeek) % 7;
 
     switch (configData.weekRange) {
+      case 'ONE_WEEK':
       case '1_WEEK':
         maxDate.setUTCDate(today.getUTCDate() + daysToNextSunday);
         break;
+      case 'TWO_WEEKS':
       case '2_WEEKS':
         maxDate.setUTCDate(today.getUTCDate() + daysToNextSunday + 7);
         break;
+      case 'ONE_MONTH':
       case '1_MONTH':
         // Calendar-wise end of month
         const nextMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0));
@@ -114,7 +117,13 @@ export class LeavesService {
     }
 
     // === VALIDATION 4: User must have an assigned shift for the week of the leave date ===
-    const weekStart = startOfWeek(parseISO(leaveData.date), { weekStartsOn: 1 });
+    // Use purely UTC computation for weekStart to perfectly match frontend
+    const d = new Date(date.getTime());
+    const dayOfWeekIdx = d.getUTCDay();
+    const mondayIndex = (dayOfWeekIdx + 6) % 7;
+    const diff = d.getUTCDate() - mondayIndex;
+    const weekStart = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff));
+    
     const userShift = await (this.prisma as any).userShift.findUnique({
       where: {
         userId_startDate: {

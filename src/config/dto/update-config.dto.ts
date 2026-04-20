@@ -23,7 +23,7 @@ export class UpdateConfigDto {
   disabledDays?: number[];
 
   @IsOptional()
-  @IsEnum(['1_WEEK', '2_WEEKS', '1_MONTH'])
+  @IsEnum(['1_WEEK', '2_WEEKS', '3_WEEKS', '1_MONTH'])
   weekRange?: WeekRange;
 
   @IsOptional()

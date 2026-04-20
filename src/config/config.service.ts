@@ -3,12 +3,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Config } from '../shared/types';
 
 // FIX: Module '"@prisma/client"' has no exported member 'Prisma'. Replaced Prisma.WeekRange with a local type.
-type DbWeekRange = 'ONE_WEEK' | 'TWO_WEEKS' | 'ONE_MONTH';
+type DbWeekRange = 'ONE_WEEK' | 'TWO_WEEKS' | 'THREE_WEEKS' | 'ONE_MONTH';
 
 const toApiWeekRange = (dbValue: DbWeekRange): Config['weekRange'] => {
   const map: Record<DbWeekRange, Config['weekRange']> = {
     ONE_WEEK: '1_WEEK',
     TWO_WEEKS: '2_WEEKS',
+    THREE_WEEKS: '3_WEEKS',
     ONE_MONTH: '1_MONTH',
   };
   return map[dbValue];
@@ -18,6 +19,7 @@ const toDbWeekRange = (apiValue: Config['weekRange']): DbWeekRange => {
   const map: Record<Config['weekRange'], DbWeekRange> = {
     '1_WEEK': 'ONE_WEEK',
     '2_WEEKS': 'TWO_WEEKS',
+    '3_WEEKS': 'THREE_WEEKS',
     '1_MONTH': 'ONE_MONTH',
   };
   return map[apiValue];

@@ -99,6 +99,10 @@ export class LeavesService {
       case '2_WEEKS':
         maxDate.setUTCDate(today.getUTCDate() + daysToNextSunday + 7);
         break;
+      case 'THREE_WEEKS':
+      case '3_WEEKS':
+        maxDate.setUTCDate(today.getUTCDate() + daysToNextSunday + 14);
+        break;
       case 'ONE_MONTH':
       case '1_MONTH':
         // Calendar-wise end of month

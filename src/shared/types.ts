@@ -19,7 +19,7 @@ export enum UserStatus {
   INACTIVE = 'INACTIVE',
 }
 
-export type WeekRange = '1_WEEK' | '2_WEEKS' | '1_MONTH';
+export type WeekRange = '1_WEEK' | '2_WEEKS' | '3_WEEKS' | '1_MONTH';
 
 export interface User {
   id: string;

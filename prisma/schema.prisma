@@ -98,5 +98,6 @@ enum LeaveStatus {
 enum WeekRange {
   ONE_WEEK
   TWO_WEEKS
+  THREE_WEEKS
   ONE_MONTH
 }

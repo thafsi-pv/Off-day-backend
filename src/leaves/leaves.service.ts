@@ -63,8 +63,13 @@ export class LeavesService {
 
     let virtualToday = new Date(istNow);
     if (day === openingDay && (hour < resetHour || (hour === resetHour && minute < resetMinute))) {
-      // It's the opening day before the opening time, stay on previous day's schedule
-      virtualToday.setUTCDate(virtualToday.getUTCDate() - 1);
+      // It's the opening day but before opening time — treat as if slots haven't opened yet
+      // Roll back to the previous occurrence of openingDay (i.e., 7 days back)
+      virtualToday.setUTCDate(virtualToday.getUTCDate() - 7);
+    } else if (day !== openingDay) {
+      // Not yet the opening day in this weekly cycle — roll back to the last opening day
+      const daysBack = (day - openingDay + 7) % 7;
+      virtualToday.setUTCDate(virtualToday.getUTCDate() - daysBack);
     }
 
     // Normalize to start of day (using the virtual IST date)
